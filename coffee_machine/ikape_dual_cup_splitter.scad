@@ -78,17 +78,16 @@ module internal_funnels_and_cone() {
     }
 }
 
-// 3. The Flow Splitter (Toggled via the variable at the top)
+// Replace the old splitter module with this version optimized for gravity-only flow
 module splitter() {
     cone_top_z = adapter_height - machine_well_depth;
     cone_height = 12;
-    splitter_z = cone_top_z - cone_height - 3; // Position right under restrictor hole
-    wedge_h = 6;
+    splitter_z = cone_top_z - cone_height - 3; 
+    wedge_h = 7; // Slightly taller for a smoother transition
     wedge_w = restrictor_hole_dia + 4;
 
     translate([0, 0, splitter_z - wedge_h]) {
         if (splitter_type == "triangle") {
-            // Triangle Wedge Option
             intersection() {
                 cylinder(h=wedge_h, d=wedge_w);
                 rotate([90, 0, 0]) 
@@ -96,18 +95,20 @@ module splitter() {
                         polygon(points=[[-wedge_w/2, 0], [wedge_w/2, 0], [0, wedge_h]]);
             }
         } else {
-            // Inverted Arc Splitter Option
+            // OPTIMIZED LOW-PRESSURE COANDĂ ARC SPLITTER
             intersection() {
                 cylinder(h=wedge_h, d=wedge_w);
                 translate([0, 0, wedge_h])
                     rotate([90, 0, 0])
                         difference() {
-                            // Boundary block
+                            // Main splitter boundary block
                             translate([-wedge_w/2, -wedge_h, -wedge_w/2])
                                 cube([wedge_w, wedge_h, wedge_w]);
-                            // Negative cylinder cutout to forge the curved arcs
+                            
+                            // A teardrop-shaped or smooth horizontal cylindrical cutout
+                            // This forms the inverted arc that the gravity stream will hug
                             translate([0, 0, -wedge_w/2 - 0.1])
-                                cylinder(h=wedge_w + 0.2, r=wedge_h);
+                                cylinder(h=wedge_w + 0.2, r=wedge_h - 1);
                         }
             }
         }
