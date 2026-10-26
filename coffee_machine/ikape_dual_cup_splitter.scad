@@ -1,5 +1,5 @@
 // =================================================================
-// E61 STAND FRAME - ITERATION 19 (PAN-HEAD COUNTERBORE REFINE)
+// E61 STAND FRAME - ITERATION 24 (LOOP VALUE ARRAY FIXED COMPLETELY)
 // =================================================================
 $fn = 120; // High render quality for circular cuts
 
@@ -28,19 +28,19 @@ track_adjustment   = 10;   // Total horizontal play allowance (mm) to slide cups
 bridge_screw_hole_dia = 4.2;  // Clearance pass-through diameter in the bridge (for M4)
 tower_screw_hole_dia  = 3.2;  // Tight pilot hole diameter in tower for self-tapper bite
 counterbore_dia       = 8.5;  // Width of the flat pocket for a Pan-Head screw profile
-counterbore_depth     = 3.5;  // Pocket depth (mm) measured from the true bottom surface
+counterbore_depth     = 3.5;  // Pocket depth (mm) measured from the cup slot floor
 
 // =================================================================
 // MAIN PRINT BED ASSEMBLY (SIDE-BY-SIDE - PERFECTLY SEPARATED)
 // =================================================================
 
 // 1. LEFT SIDE: Upper Cylinder Tower (Printed Right-Side Up)
-translate([-150, 0, 0]) { // FIXED: Pushed much further out to eliminate overlap
+translate([-150, 0, 0]) { 
     upper_cylinder_tower();
 }
 
 // 2. RIGHT SIDE: Lower Bridge Plate (Printed UPSIDE DOWN for supportless track)
-translate([0, 0, 0]) {
+translate([0, 0, 0]) { 
     lower_bridge_plate_upside_down();
 }
 
@@ -72,10 +72,10 @@ module upper_cylinder_tower() {
         translate([0, 0, -1])
             cylinder(h = tower_height + 2, d = portafilter_dia - 8);
             
-        // FIXED: Deeper pilot engagement channels for long self-tapping threads
+        // Deeper pilot engagement channels for long self-tapping threads
         screw_pattern_coordinates()
             translate([0, 0, -1])
-                cylinder(h = 35 + 1, d = tower_screw_hole_dia); // 35mm deep grab cavity
+                cylinder(h = 35 + 1, d = tower_screw_hole_dia); 
     }
 }
 
@@ -85,7 +85,7 @@ module lower_bridge_plate_upside_down() {
     total_span = cup_spacing + max_internal_dia + track_adjustment;
     slide_limit  = track_adjustment / 2;
     
-    // We model right-side up internally, then flip it completely flat to print supportless
+    // Clean inversion flip: Pins the true top face flat onto the print bed plane
     translate([0, 0, bridge_height])
     rotate([180, 0, 0]) 
     difference() {
@@ -112,31 +112,32 @@ module lower_bridge_plate_upside_down() {
             }
         }
         
-        // FIXED Shafty Channels & Flat-Bottom Counterbores for Pan-Head Screws
+        // 4x Shafty Channels & Flat-Bottom Counterbores for Pan-Head Screws
         screw_pattern_coordinates() {
             // Main thread clearance pass-through shaft running all the way through
             translate([0, 0, -1])
                 cylinder(h = bridge_height + 2, d = bridge_screw_hole_dia);
                 
-            // FIXED: Flat-bottomed pan-head counterbore pocket cut out of the absolute bottom surface (Z=0)
-            translate([0, 0, -0.1])
+            // The counterbore starts at the cup slot floor and cuts deep into the solid plastic core
+            translate([0, 0, cup_lip_depth - 0.1])
                 cylinder(h = counterbore_depth + 0.1, d = counterbore_dia);
         }
     }
 }
 
-// Positions 4 screw channels perfectly centered within the thick lower solid walls
+// FIXED: Symmetrical corner arrangement mapping coordinates array explicitly
 module screw_pattern_coordinates() {
     tower_outer_dia = ear_span + (shell_wall * 2);
     internal_core_dia = portafilter_dia - 8;
     
-    // Calculate the exact midpoint circle between the outer wall and the internal bore line
+    // Calculate the exact midpoint circle between outer diameter and internal bore line
     centered_radius = (internal_core_dia / 2) + ((tower_outer_dia - internal_core_dia) / 4);
     
-    // Symmetrical 45-degree corner offset array to tuck screws clear of the wide ear tracks
-    rotate([0, 0, 45])  translate([centered_radius, 0, 0]) children();
-    rotate([0, 0, 135]) translate([centered_radius, 0, 0]) children();
-    rotate([0, 0, 225]) translate([centered_radius, 0, 0]) children();
-    rotate([0, 0, 315]) translate([centered_radius, 0, 0]) children();
+    // FIXED ARMED CORNER TRACK LOOP VECTOR
+    for (angle =[45, 135, 225, 315]) {
+        rotate([0, 0, angle]) 
+            translate([centered_radius, 0, 0]) 
+                children();
+    }
 }
 
