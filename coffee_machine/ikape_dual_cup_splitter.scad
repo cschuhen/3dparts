@@ -1,49 +1,97 @@
 // =================================================================
-// OBJECT 1: VERTICAL ARCHED U-CHANNEL - ONE SINGLE ARM
+// E61 PORTAFILTER STAND FRAME - ITERATION 11 (OPEN VERTICAL EAR TRACKS)
 // =================================================================
 $fn = 120; 
 
-// --- Setup Parameters ---
-cup_spacing        = 55;   
-restrictor_hole_dia= 5;    
-shell_wall         = 2.2;  
+// --- Setup Dimensions ---
+cup_outer_dia      = 65;   // Top outer diameter of your glass cups (mm)
+cup_spacing        = 55;   // Center-to-center nominal distance between cups
+stand_height       = 80;   // Height of the plastic block frame
+shell_wall         = 4.0;  // Structural padding thickness 
 
-gutter_inner_dia   = restrictor_hole_dia * 2; 
-gutter_outer_dia   = gutter_inner_dia + (shell_wall * 2);
+// --- Tier 1 (Top): Espresso Machine Socket ---
+machine_dia        = 68;   // Outer base diameter of your portable espresso machine
+machine_slot_depth = 20;    // How deep the machine base sits inside the top rim
 
-arc_angle          = 32;   
-arch_radius        = (cup_spacing / 2) / sin(arc_angle); 
+// --- Tier 2 (Middle): E61 Portafilter Socket & Ear Slots ---
+portafilter_dia    = 63;   // Tight-ish hole diameter for the main circular body
+portafilter_depth  = 10;   // Depth/thickness of the portafilter body ring section
+ear_span           = 79;   // Total tip-to-tip width across both ears (greater than 68mm)
+ear_width          = 11;   // Front-to-back width of the tabs/ears (mm)
+
+// --- Adjustable Track Customisation ---
+track_adjustment   = 10;   // Total horizontal play allowance (mm) to slide cups in/out
 
 // =================================================================
-// RENDERING EXECUTION
+// MAIN ASSEMBLY INTERSECTION PIPELINE
 // =================================================================
-translate([0, 0, -arch_radius]) {
-    pure_arched_u_channel_single();
+difference() {
+    // 1. Core solid housing body block
+    solid_housing_frame();
+    
+    // 2. TIER 1 (TOP): Socket for the portable espresso machine base
+    top_machine_socket();
+    
+    // 3. TIER 2 (MIDDLE): Tight hole for E61 body + Open-Top vertical ear slots
+    middle_portafilter_socket();
+    
+    // 4. FROM THE BOTTOM: Single continuous rounded slot track for adjustable cup spacing
+    bottom_cup_track_recess();
 }
 
 // =================================================================
-// COMPONENT MODULES
+// GEOMETRIC COMPONENT DEFINITIONS
 // =================================================================
 
-module pure_arched_u_channel_single() {
-    // Only one arm remains now to isolate the shape layout
-    rotate([0, arc_angle, 0]) 
-        rotate_extrude(angle = arc_angle)
-            translate([arch_radius, 0, 0])
-                sky_facing_u_profile_2d();
+module solid_housing_frame() {
+    max_internal_dia = max(machine_dia, portafilter_dia, cup_outer_dia, ear_span);
+    total_span = cup_spacing + max_internal_dia + track_adjustment;
+    
+    hull() {
+        translate([-total_span/4, 0, 0])
+            cylinder(h=stand_height, d=max_internal_dia + (shell_wall*2));
+        translate([total_span/4, 0, 0])
+            cylinder(h=stand_height, d=max_internal_dia + (shell_wall*2));
+        cylinder(h=stand_height, d=max_internal_dia + (shell_wall*2));
+    }
 }
 
-module sky_facing_u_profile_2d() {
-    difference() {
-        union() {
-            circle(d = gutter_outer_dia);
-            translate([0, -gutter_outer_dia/2])
-                square([gutter_outer_dia/2, gutter_outer_dia]);
-        }
-        union() {
-            circle(d = gutter_inner_dia);
-            translate([0, -gutter_inner_dia/2])
-                square([gutter_outer_dia, gutter_inner_dia]);
+module top_machine_socket() {
+    machine_z = stand_height - machine_slot_depth;
+    translate([0, 0, machine_z])
+        cylinder(h=machine_slot_depth + 1, d=machine_dia);
+}
+
+// REFINED: Ear tracks now cut continuously all the way out through the top surface
+module middle_portafilter_socket() {
+    pf_z = stand_height - machine_slot_depth - portafilter_depth;
+    
+    // Main tight-fitting body hole
+    translate([0, 0, pf_z])
+        cylinder(h=portafilter_depth + 0.1, d=portafilter_dia);
+    
+    // FIXED: The ear slot volume now projects all the way to the top of the stand (stand_height)
+    // This allows the wider ears to clear the narrower 68mm machine lip during drop-in
+    ear_cutout_height = stand_height - pf_z + 1;
+    translate([0, 0, pf_z])
+        translate([0, 0, ear_cutout_height / 2])
+            cube([ear_span, ear_width, ear_cutout_height], center=true);
+        
+    // Through-hole corridor to allow the dual spouts to drop into the lower chamber
+    translate([0, 0, -1])
+        cylinder(h=pf_z + 1.1, d=portafilter_dia - 8);
+}
+
+module bottom_cup_track_recess() {
+    recess_depth = 5; 
+    slide_limit  = track_adjustment / 2;
+    
+    translate([0, 0, -0.5]) {
+        hull() {
+            translate([-(cup_spacing/2) - slide_limit, 0, 0])
+                cylinder(h=recess_depth + 0.5, d=cup_outer_dia + 1.2);
+            translate([(cup_spacing/2) + slide_limit, 0, 0])
+                cylinder(h=recess_depth + 0.5, d=cup_outer_dia + 1.2);
         }
     }
 }
