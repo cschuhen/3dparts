@@ -1,12 +1,12 @@
 // =================================================================
-// E61 STAND FRAME - ITERATION 18 (SELF-TAPPING SCREW REFINEMENTS)
+// E61 STAND FRAME - ITERATION 19 (PAN-HEAD COUNTERBORE REFINE)
 // =================================================================
-$fn = 120; // Crisp rendering circles
+$fn = 120; // High render quality for circular cuts
 
 // --- Explicit Component Height Constants ---
 tower_height       = 70;   // Main cylindrical tower body height (mm)
 bridge_height      = 12;   // Flat-to-flat bridge plate thickness (mm)
-cup_lip_depth      = 0;    // Depth of anti-vibration protective pocket lip (mm)
+cup_lip_depth      = 5;    // Depth of anti-vibration protective pocket lip (mm)
 
 // --- Machine & Cup Geometry Parameters ---
 machine_dia        = 68;   // Outer base diameter of your portable espresso machine
@@ -27,14 +27,15 @@ track_adjustment   = 10;   // Total horizontal play allowance (mm) to slide cups
 // --- Hardware & Self-Tapping Fastener Parameters ---
 bridge_screw_hole_dia = 4.2;  // Clearance pass-through diameter in the bridge (for M4)
 tower_screw_hole_dia  = 3.2;  // Tight pilot hole diameter in tower for self-tapper bite
-countersink_dia       = 8.5;  // Maximum outer diameter of the 90-degree screw head head-sink
+counterbore_dia       = 8.5;  // Width of the flat pocket for a Pan-Head screw profile
+counterbore_depth     = 3.5;  // Pocket depth (mm) measured from the true bottom surface
 
 // =================================================================
-// MAIN PRINT BED ASSEMBLY (SIDE-BY-SIDE WITH EXTENDED CLEARANCE)
+// MAIN PRINT BED ASSEMBLY (SIDE-BY-SIDE - PERFECTLY SEPARATED)
 // =================================================================
 
 // 1. LEFT SIDE: Upper Cylinder Tower (Printed Right-Side Up)
-translate([-100, 0, 0]) { // Increased distance to prevent print bed crowding
+translate([-150, 0, 0]) { // FIXED: Pushed much further out to eliminate overlap
     upper_cylinder_tower();
 }
 
@@ -71,10 +72,10 @@ module upper_cylinder_tower() {
         translate([0, 0, -1])
             cylinder(h = tower_height + 2, d = portafilter_dia - 8);
             
-        // Tight pilot holes for self-tapping threads (centered on the thick lower wall)
+        // FIXED: Deeper pilot engagement channels for long self-tapping threads
         screw_pattern_coordinates()
             translate([0, 0, -1])
-                cylinder(h = 25, d = tower_screw_hole_dia); // 24mm deep thread engagement cavity
+                cylinder(h = 35 + 1, d = tower_screw_hole_dia); // 35mm deep grab cavity
     }
 }
 
@@ -111,21 +112,20 @@ module lower_bridge_plate_upside_down() {
             }
         }
         
-        // Clearance holes + coned countersinks for the self-tapping assembly fasteners
+        // FIXED Shafty Channels & Flat-Bottom Counterbores for Pan-Head Screws
         screw_pattern_coordinates() {
-            // Main thread pass-through shaft
+            // Main thread clearance pass-through shaft running all the way through
             translate([0, 0, -1])
                 cylinder(h = bridge_height + 2, d = bridge_screw_hole_dia);
                 
-            // Conical 90-degree countersink cut out of the bottom face (Z=0 when right-side up)
-            cs_height = (countersink_dia - bridge_screw_hole_dia) / 2;
+            // FIXED: Flat-bottomed pan-head counterbore pocket cut out of the absolute bottom surface (Z=0)
             translate([0, 0, -0.1])
-                cylinder(h = cs_height + 0.1, d1 = countersink_dia, d2 = bridge_screw_hole_dia);
+                cylinder(h = counterbore_depth + 0.1, d = counterbore_dia);
         }
     }
 }
 
-// REFINED: Positions 4 screw channels perfectly centered within the thick lower solid walls
+// Positions 4 screw channels perfectly centered within the thick lower solid walls
 module screw_pattern_coordinates() {
     tower_outer_dia = ear_span + (shell_wall * 2);
     internal_core_dia = portafilter_dia - 8;
