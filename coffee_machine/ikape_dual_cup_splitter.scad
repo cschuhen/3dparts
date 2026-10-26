@@ -1,12 +1,12 @@
 // =================================================================
-// E61 PORTAFILTER STAND FRAME - ITERATION 11 (OPEN VERTICAL EAR TRACKS)
+// PIECE 1: MAIN TOWER STAND - ITERATION 16 (SYNTAX FIXED)
 // =================================================================
 $fn = 120; 
 
 // --- Setup Dimensions ---
 cup_outer_dia      = 65;   // Top outer diameter of your glass cups (mm)
 cup_spacing        = 55;   // Center-to-center nominal distance between cups
-stand_height       = 80;   // Height of the plastic block frame
+stand_height       = 70;   // Height of the plastic block frame
 shell_wall         = 4.0;  // Structural padding thickness 
 
 // --- Tier 1 (Top): Espresso Machine Socket ---
@@ -16,27 +16,27 @@ machine_slot_depth = 20;    // How deep the machine base sits inside the top rim
 // --- Tier 2 (Middle): E61 Portafilter Socket & Ear Slots ---
 portafilter_dia    = 63;   // Tight-ish hole diameter for the main circular body
 portafilter_depth  = 10;   // Depth/thickness of the portafilter body ring section
-ear_span           = 79;   // Total tip-to-tip width across both ears (greater than 68mm)
-ear_width          = 11;   // Front-to-back width of the tabs/ears (mm)
+ear_span           = 79;   // Total tip-to-tip width across both ears 
+ear_width          = 11;   // // FIXED COMMENT MARKER HERE
 
 // --- Adjustable Track Customisation ---
 track_adjustment   = 10;   // Total horizontal play allowance (mm) to slide cups in/out
 
 // =================================================================
-// MAIN ASSEMBLY INTERSECTION PIPELINE
+// MAIN ASSEMBLY PIPELINE (PIECE 1)
 // =================================================================
 difference() {
     // 1. Core solid housing body block
     solid_housing_frame();
     
-    // 2. TIER 1 (TOP): Socket for the portable espresso machine base
+    // 2. TIER 1 (TOP): 100% FLAT socket for the espresso machine base
     top_machine_socket();
     
-    // 3. TIER 2 (MIDDLE): Tight hole for E61 body + Open-Top vertical ear slots
+    // 3. TIER 2 (MIDDLE): 100% FLAT tight hole for E61 body + open vertical ear slots
     middle_portafilter_socket();
     
-    // 4. FROM THE BOTTOM: Single continuous rounded slot track for adjustable cup spacing
-    bottom_cup_track_recess();
+    // 4. FLUID EXIT: Central through-hole corridor extending all the way out the bottom
+    bottom_fluid_exit_hole();
 }
 
 // =================================================================
@@ -62,37 +62,24 @@ module top_machine_socket() {
         cylinder(h=machine_slot_depth + 1, d=machine_dia);
 }
 
-// REFINED: Ear tracks now cut continuously all the way out through the top surface
 module middle_portafilter_socket() {
     pf_z = stand_height - machine_slot_depth - portafilter_depth;
     
-    // Main tight-fitting body hole
+    // Main tight-fitting body hole (FLAT LEDGE)
     translate([0, 0, pf_z])
         cylinder(h=portafilter_depth + 0.1, d=portafilter_dia);
     
-    // FIXED: The ear slot volume now projects all the way to the top of the stand (stand_height)
-    // This allows the wider ears to clear the narrower 68mm machine lip during drop-in
+    // Open-topped ear slots tracking straight up out of the block
     ear_cutout_height = stand_height - pf_z + 1;
     translate([0, 0, pf_z])
         translate([0, 0, ear_cutout_height / 2])
             cube([ear_span, ear_width, ear_cutout_height], center=true);
-        
-    // Through-hole corridor to allow the dual spouts to drop into the lower chamber
-    translate([0, 0, -1])
-        cylinder(h=pf_z + 1.1, d=portafilter_dia - 8);
 }
 
-module bottom_cup_track_recess() {
-    recess_depth = 5; 
-    slide_limit  = track_adjustment / 2;
-    
-    translate([0, 0, -0.5]) {
-        hull() {
-            translate([-(cup_spacing/2) - slide_limit, 0, 0])
-                cylinder(h=recess_depth + 0.5, d=cup_outer_dia + 1.2);
-            translate([(cup_spacing/2) + slide_limit, 0, 0])
-                cylinder(h=recess_depth + 0.5, d=cup_outer_dia + 1.2);
-        }
-    }
+module bottom_fluid_exit_hole() {
+    pf_z = stand_height - machine_slot_depth - portafilter_depth;
+    // Single tight vertical hole piercing straight through to the bottom floor
+    translate([0, 0, -1])
+        cylinder(h=pf_z + 1.1, d=portafilter_dia - 8);
 }
 
