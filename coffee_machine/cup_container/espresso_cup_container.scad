@@ -51,7 +51,7 @@ wall_thickness = use_computed_thickness ? optimal_wall_thickness : custom_wall_t
 base_thickness = wall_thickness; // Base floor thickness equals wall thickness (4.8 mm)
 
 // 3D printing fit clearance (radial clearance between glass and container inner wall)
-fit_clearance   = 0.4;   // Radial clearance (mm)
+fit_clearance   = 1.4;   // Radial clearance (mm)
 base_hole_dia   = 20.0;  // Center finger push-out hole diameter in container base (0 for solid)
 
 /* [Flush 50/50 Thread Parameters] */
@@ -81,7 +81,7 @@ sleeve_rim_chamfer    = 0.5;   // Entry chamfer at top of sleeve (mm)
 square_grid_spacing   = 16.0;  // Minimum spacing between adjacent components on the print bed (mm)
 
 /* [Mesh Resolution] */
-$fn = 60; // Clean facet resolution (optimal for fast rendering and smooth threads)
+$fn = 120; // Clean facet resolution (optimal for fast rendering and smooth threads)
 
 // =============================================================================
 // DERIVED GEOMETRY CALCULATIONS
