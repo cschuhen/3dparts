@@ -4,22 +4,24 @@
 $fn = 120; // High render quality for circular cuts
 
 // --- Explicit Component Height Constants ---
-tower_height       = 70;   // Main cylindrical tower body height (mm)
 bridge_height      = 12;   // Flat-to-flat bridge plate thickness (mm)
 cup_lip_depth      = 5;    // Depth of anti-vibration protective pocket lip (mm)
 
+
 // --- Machine & Cup Geometry Parameters ---
-machine_dia        = 68;   // Outer base diameter of your portable espresso machine
-machine_slot_depth = 6;    // How deep the machine base sits inside the top rim
+machine_dia        = 70;   // Outer base diameter of your portable espresso machine
+machine_slot_depth = 19;    // How deep the machine base sits inside the top rim
 cup_outer_dia      = 65;   // Top outer diameter of your glass cups (mm)
 cup_spacing        = 55;   // Center-to-center nominal distance between cups
 shell_wall         = 4.0;  // Structural wall padding thickness
 
 // --- Tier 2 (Middle): E61 Portafilter Socket & Ear Slots ---
-portafilter_dia    = 63;   // Tight-ish hole diameter for the main circular body
-portafilter_depth  = 10;   // Depth/thickness of the portafilter body ring section
-ear_span           = 79;   // Total tip-to-tip width across both ears 
-ear_width          = 11;   
+portafilter_dia    = 70;   // Tight-ish hole diameter for the main circular body
+portafilter_depth  = 0;   // Depth/thickness of the portafilter body ring section
+ear_span           = 81;   // Total tip-to-tip width across both ears 
+ear_width          = 26;   
+ear_depth          = 10;    // Vertical distance from bottom of ear to top of portafilter
+splitter_depth     = 60;    // Vertical distance for splitter to clear classes to top of portafilter
 
 // --- Adjustable Track Customisation ---
 track_adjustment   = 10;   // Total horizontal play allowance (mm) to slide cups in/out
@@ -30,12 +32,15 @@ tower_screw_hole_dia  = 3.2;  // Tight pilot hole diameter in tower for self-tap
 counterbore_dia       = 8.5;  // Width of the flat pocket for a Pan-Head screw profile
 counterbore_depth     = 3.5;  // Pocket depth (mm) measured from the cup slot floor
 
+
+tower_height       = splitter_depth - ear_depth + machine_slot_depth;   // Main cylindrical tower body height (mm)
+
 // =================================================================
 // MAIN PRINT BED ASSEMBLY (SIDE-BY-SIDE - PERFECTLY SEPARATED)
 // =================================================================
 
 // 1. LEFT SIDE: Upper Cylinder Tower (Printed Right-Side Up)
-translate([-150, 0, 0]) { 
+translate([0, 100, 0]) { 
     upper_cylinder_tower();
 }
 
@@ -70,7 +75,7 @@ module upper_cylinder_tower() {
             
         // Central internal fluid clearance corridor passing out the bottom
         translate([0, 0, -1])
-            cylinder(h = tower_height + 2, d = portafilter_dia - 8);
+            cylinder(h = tower_height + 2, d = portafilter_dia);
             
         // Deeper pilot engagement channels for long self-tapping threads
         screw_pattern_coordinates()
@@ -100,7 +105,7 @@ module lower_bridge_plate_upside_down() {
         
         // Central fluid pass-through entry pocket matching portafilter core diameter
         translate([0, 0, -1])
-            cylinder(h = bridge_height + 2, d = portafilter_dia - 8);
+            cylinder(h = bridge_height + 2, d = portafilter_dia);
             
         // Capsule slot tracking track underneath to protect against cup skate/vibration
         translate([0, 0, -0.1]) {
@@ -128,7 +133,7 @@ module lower_bridge_plate_upside_down() {
 // FIXED: Symmetrical corner arrangement mapping coordinates array explicitly
 module screw_pattern_coordinates() {
     tower_outer_dia = ear_span + (shell_wall * 2);
-    internal_core_dia = portafilter_dia - 8;
+    internal_core_dia = portafilter_dia;
     
     // Calculate the exact midpoint circle between outer diameter and internal bore line
     centered_radius = (internal_core_dia / 2) + ((tower_outer_dia - internal_core_dia) / 4);
