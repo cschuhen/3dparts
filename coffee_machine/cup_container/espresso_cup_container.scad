@@ -6,8 +6,7 @@
 // - Lower section tapers to match the glass cup angle (42 mm bottom to 58 mm top).
 // - Mating outer diameter is exactly 58 mm at 28 mm from the container base.
 // - Upper cylinder matches the outer diameter (68.7 mm) with zero-thickness-safe revolve.
-// - Option 2 Flush-Fit 50/50 Trapezoidal Coarse Thread (2-start, 6mm pitch).
-//   50% tooth width, 50% groove width with support-free flank angles.
+// - Flush-Fit Trapezoidal Coarse Thread via BOSL2 (2-start, 6mm pitch).
 // - Matching recessed vertical grip flutes on BOTH the lid and the container cylinder.
 // - Extra thick plastic above the thread (4.75 mm wall, 5.0 mm solid roof) for maximum strength.
 // - Lid is oriented UPSIDE DOWN on the build plate for beautiful bed texture & support-free printing.
@@ -15,6 +14,9 @@
 //   leaving small support rings for the cup rims (saves weight, zero vacuum lock).
 // - 4 components arranged in a compact, balanced SQUARE layout on the build plate.
 // =============================================================================
+
+include <lib/BOSL2/std.scad>;
+include <lib/BOSL2/threading.scad>;
 
 /* [Part Selection] */
 // What part to generate or inspect:
@@ -54,10 +56,11 @@ base_thickness = wall_thickness; // Base floor thickness equals wall thickness (
 fit_clearance   = 1.4;   // Radial clearance (mm)
 base_hole_dia   = 20.0;  // Center finger push-out hole diameter in container base (0 for solid)
 
-/* [Flush 50/50 Thread Parameters] */
+/* [Flush Trapezoidal Thread Parameters] */
 thread_pitch        = 6.0;   // Coarse pitch (mm per revolution)
 thread_turns        = 2.5;   // Number of thread turns (engagement height = 15.0 mm)
 thread_depth        = 1.2;   // Tooth depth (mm)
+thread_angle        = 30;    // Included angle between thread flanks (degrees, BOSL2 trapezoidal)
 thread_clearance    = 0.35;  // Radial clearance between male/female threads for smooth gliding
 thread_starts       = 2;     // 2-start thread for balanced, instant engagement
 neck_wall_min       = 1.35;  // Neck wall thickness at thread root (mm, ~4 solid perimeters)
@@ -148,8 +151,8 @@ echo(str("Mating OD (at z = 28mm):    ", mating_od, " mm"));
 echo(str("Taper Transition z:         ", z_transition, " mm"));
 echo(str("Cylinder OD (Container&Lid):", od_cylinder, " mm"));
 echo(str("Container Shoulder z:       ", z_shoulder, " mm"));
-echo(str("Thread Profile:             50/50 Trapezoidal (balanced 50% tooth, 50% groove)"));
-echo(str("Thread Flank Depth:         ", thread_depth, " mm (support-free at defaults)"));
+echo(str("Thread Profile:             BOSL2 Trapezoidal (", thread_angle, "° flanks)"));
+echo(str("Thread Depth:               ", thread_depth, " mm"));
 echo(str("Neck Wall Thickness (root): ", neck_wall_min, " mm"));
 echo(str("Lid Wall at Thread Root:    ", lid_wall_at_thread, " mm"));
 echo(str("Lid Wall ABOVE Thread:      ", lid_wall_above_thread, " mm (Solid Heavy-Duty Plastic)"));
@@ -173,50 +176,35 @@ module flute_cutter(h, r) {
 }
 
 // =============================================================================
-// 50/50 TRAPEZOIDAL THREAD HELIX GENERATION
+// TRAPEZOIDAL THREAD (BOSL2)
 // =============================================================================
-function trap5050(phi) = 
-    let(p = (phi % 360 + 360) % 360)
-    (p < 12)   ? 1.0 :
-    (p < 168)  ? (168.0 - p) / 156.0 :
-    (p < 192)  ? 0.0 :
-    (p < 348)  ? (p - 192.0) / 156.0 :
-                 1.0;
-
-// 50/50 Male thread 2D polygon
-module male_thread_2d() {
-    polygon([
-        for (a = [0:4:356])
-            let(
-                phi = (a * thread_starts) % 360,
-                bump = trap5050(phi),
-                r = r_neck_root + thread_depth * bump
-            )
-            [r * cos(a), r * sin(a)]
-    ]);
-}
-
-// 50/50 Female thread 2D polygon with uniform clearance
-module female_thread_2d() {
-    polygon([
-        for (a = [0:4:356])
-            let(
-                phi = (a * thread_starts) % 360,
-                bump = trap5050(phi),
-                r = (r_neck_root + thread_clearance) + thread_depth * bump
-            )
-            [r * cos(a), r * sin(a)]
-    ]);
-}
-
 module male_thread() {
-    linear_extrude(height = h_thread, twist = -360 * thread_turns, slices = 30)
-        male_thread_2d();
+    trapezoidal_threaded_rod(
+        d = r_male_crest * 2,
+        l = h_thread,
+        pitch = thread_pitch,
+        thread_angle = thread_angle,
+        thread_depth = thread_depth,
+        starts = thread_starts,
+        blunt_start = true,
+        bevel = false,
+        anchor = BOTTOM
+    );
 }
 
 module female_thread_cavity() {
-    linear_extrude(height = h_thread + 1.0, twist = -360 * thread_turns, slices = 30)
-        female_thread_2d();
+    trapezoidal_threaded_rod(
+        d = (r_neck_root + thread_clearance) * 2,
+        l = h_thread + 1.0,
+        pitch = thread_pitch,
+        thread_angle = thread_angle,
+        thread_depth = thread_depth,
+        starts = thread_starts,
+        internal = true,
+        blunt_start = true,
+        bevel = false,
+        anchor = BOTTOM
+    );
 }
 
 // =============================================================================
