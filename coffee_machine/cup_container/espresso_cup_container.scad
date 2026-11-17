@@ -66,6 +66,9 @@ thread_starts       = 2;     // 2-start thread for balanced, instant engagement
 neck_wall_min       = 1.35;  // Neck wall thickness at thread root (mm, ~4 solid perimeters)
 lid_roof_thickness  = 5.0;   // Thick solid roof on the lid (sits on bed for plate texture) (mm)
 
+lid_roof_rounding   = 0.8;   // Rounding radius on the roof edge of the lid (top when assembled) (mm)
+container_bottom_rounding = 0.8; // Rounding radius on the bottom edge of the container (mm)
+
 /* [Tactile Grip Flutes (Lid & Container)] */
 num_grip_flutes     = 18;    // Number of recessed tactile grip flutes around perimeter
 flute_radius        = 1.3;   // Radius of flute cutouts (mm)
@@ -160,6 +163,8 @@ echo(str("Lid Roof Thickness:         ", lid_roof_thickness, " mm (Solid Plate S
 echo(str("Grip Flute Depth:           ", flute_radius, " mm"));
 echo(str("Wall Behind Flute:          ", lid_wall_above_thread - flute_radius, " mm (Solid Plastic)"));
 echo(str("Total Lid Height:           ", lid_total_height, " mm"));
+echo(str("Lid Roof Edge Rounding:     ", lid_roof_rounding, " mm (BOSL2 torus fillet)"));
+echo(str("Container Bottom Rounding:  ", container_bottom_rounding, " mm (BOSL2 torus fillet)"));
 echo(str("Lid Print Orientation:      UPSIDE DOWN (flat top roof on z=0 for bed texture)"));
 echo(str("Square Grid Footprint:      ", grid_pitch + od_cylinder, " x ", grid_pitch + od_cylinder, " mm"));
 echo("==================================================");
@@ -211,49 +216,61 @@ module female_thread_cavity() {
 // CONTAINER BODY MODULE (With Cylindrical Section Grip Flutes)
 // =============================================================================
 module container_body() {
-    difference() {
-        union() {
-            // 1. Revolved main body from base up to shoulder (zero-thickness-safe)
-            profile_to_shoulder = [
-                [base_hole_dia / 2, 0],
-                [od_bottom / 2, 0],
-                [r_out, z_transition],
-                [r_out, z_shoulder],
-                [r_neck_root, z_shoulder],
-                [r_in, z_shoulder],
-                [r_in, z_transition],
-                [glass_bot_dia / 2 + fit_clearance, base_thickness],
-                [base_hole_dia / 2, base_thickness]
-            ];
-            rotate_extrude() polygon(profile_to_shoulder);
-            
-            // 2. Threaded neck extending above shoulder
-            translate([0, 0, z_shoulder]) {
-                difference() {
-                    male_thread();
-                    // Internal through-bore
-                    translate([0, 0, -1])
-                        cylinder(h = h_thread + 2, d = id_cylinder);
-                    // Entry chamfer on top inner rim
-                    translate([0, 0, h_thread - 1.0])
-                        cylinder(h = 1.1, d1 = id_cylinder, d2 = id_cylinder + 2.0);
-                    // Exterior lead-in chamfer on top rim of male thread
-                    translate([0, 0, h_thread - 1.0])
-                        difference() {
-                            cylinder(h = 1.1, d = r_male_crest * 2 + 2.0);
-                            cylinder(h = 1.2, d1 = r_male_crest * 2 - 2.0, d2 = r_neck_root * 2);
-                        }
+    intersection() {
+        difference() {
+            union() {
+                // 1. Revolved main body from base up to shoulder (zero-thickness-safe)
+                profile_to_shoulder = [
+                    [base_hole_dia / 2, 0],
+                    [od_bottom / 2, 0],
+                    [r_out, z_transition],
+                    [r_out, z_shoulder],
+                    [r_neck_root, z_shoulder],
+                    [r_in, z_shoulder],
+                    [r_in, z_transition],
+                    [glass_bot_dia / 2 + fit_clearance, base_thickness],
+                    [base_hole_dia / 2, base_thickness]
+                ];
+                rotate_extrude() polygon(profile_to_shoulder);
+
+                // 2. Threaded neck extending above shoulder
+                translate([0, 0, z_shoulder]) {
+                    difference() {
+                        male_thread();
+                        // Internal through-bore
+                        translate([0, 0, -1])
+                            cylinder(h = h_thread + 2, d = id_cylinder);
+                        // Entry chamfer on top inner rim
+                        translate([0, 0, h_thread - 1.0])
+                            cylinder(h = 1.1, d1 = id_cylinder, d2 = id_cylinder + 2.0);
+                        // Exterior lead-in chamfer on top rim of male thread
+                        translate([0, 0, h_thread - 1.0])
+                            difference() {
+                                cylinder(h = 1.1, d = r_male_crest * 2 + 2.0);
+                                cylinder(h = 1.2, d1 = r_male_crest * 2 - 2.0, d2 = r_neck_root * 2);
+                            }
+                    }
+                }
+            }
+
+            // 3. Recessed grip flutes placed strictly in the cylindrical section
+            if (num_grip_flutes > 0) {
+                for (i = [0 : num_grip_flutes - 1]) {
+                    rotate([0, 0, i * (360 / num_grip_flutes)])
+                        translate([r_out, 0, container_flute_z])
+                            flute_cutter(container_flute_h, flute_radius);
                 }
             }
         }
-        
-        // 3. Recessed grip flutes placed strictly in the cylindrical section
-        if (num_grip_flutes > 0) {
-            for (i = [0 : num_grip_flutes - 1]) {
-                rotate([0, 0, i * (360 / num_grip_flutes)])
-                    translate([r_out, 0, container_flute_z])
-                        flute_cutter(container_flute_h, flute_radius);
-            }
+
+        // Rounded bottom-edge mask: flat disc + torus fillet + upper cylinder
+        union() {
+            translate([0, 0, -1])
+                cylinder(h = container_bottom_rounding + 1, d = (od_bottom / 2 - container_bottom_rounding) * 2);
+            translate([0, 0, container_bottom_rounding])
+                torus(r_maj = od_bottom / 2 - container_bottom_rounding, r_min = container_bottom_rounding, center = true);
+            translate([0, 0, container_bottom_rounding])
+                cylinder(h = z_shoulder + h_thread + 1, d = od_cylinder);
         }
     }
 }
@@ -263,34 +280,46 @@ module container_body() {
 // =============================================================================
 // Thick 4.75 mm wall and 5.0 mm solid roof above the thread guarantee zero breakthrough.
 module flush_lid() {
-    difference() {
-        // Outer cylinder (exact same outer diameter as container: 68.7 mm)
-        cylinder(h = lid_total_height, d = od_cylinder);
-        
-        // Matching recessed vertical grip flutes with rounded ends
-        if (num_grip_flutes > 0) {
-            for (i = [0 : num_grip_flutes - 1]) {
-                rotate([0, 0, i * (360 / num_grip_flutes)])
-                    translate([r_out, 0, lid_roof_thickness + flute_height_target()])
-                        flute_cutter(lid_flute_h, flute_radius);
+    intersection() {
+        difference() {
+            // Outer cylinder (exact same outer diameter as container: 68.7 mm)
+            cylinder(h = lid_total_height, d = od_cylinder);
+
+            // Matching recessed vertical grip flutes with rounded ends
+            if (num_grip_flutes > 0) {
+                for (i = [0 : num_grip_flutes - 1]) {
+                    rotate([0, 0, i * (360 / num_grip_flutes)])
+                        translate([r_out, 0, lid_roof_thickness + flute_height_target()])
+                            flute_cutter(lid_flute_h, flute_radius);
+                }
             }
+
+            // Cup pocket (D = 59.2 mm, leaving 4.75 mm solid wall above the thread!)
+            translate([0, 0, lid_roof_thickness - 0.1])
+                cylinder(h = cup_reveal_in_lid + 0.2, r = r_pocket);
+
+            // 45° internal transition bevel from pocket to thread cavity
+            translate([0, 0, lid_roof_thickness + cup_reveal_in_lid - 1.0])
+                cylinder(h = 1.1, r1 = r_pocket, r2 = r_neck_root + thread_clearance);
+
+            // Thread cavity (opens up to top of lid)
+            translate([0, 0, lid_roof_thickness + cup_reveal_in_lid])
+                female_thread_cavity();
+
+            // Lead-in entry chamfer at open rim
+            translate([0, 0, lid_total_height - 1.5])
+                cylinder(h = 1.6, r1 = r_neck_root, r2 = r_lid_major + 0.5);
         }
-        
-        // Cup pocket (D = 59.2 mm, leaving 4.75 mm solid wall above the thread!)
-        translate([0, 0, lid_roof_thickness - 0.1])
-            cylinder(h = cup_reveal_in_lid + 0.2, r = r_pocket);
-            
-        // 45° internal transition bevel from pocket to thread cavity
-        translate([0, 0, lid_roof_thickness + cup_reveal_in_lid - 1.0])
-            cylinder(h = 1.1, r1 = r_pocket, r2 = r_neck_root + thread_clearance);
-            
-        // Thread cavity (opens up to top of lid)
-        translate([0, 0, lid_roof_thickness + cup_reveal_in_lid])
-            female_thread_cavity();
-            
-        // Lead-in entry chamfer at open rim
-        translate([0, 0, lid_total_height - 1.5])
-            cylinder(h = 1.6, r1 = r_neck_root, r2 = r_lid_major + 0.5);
+
+        // Rounded roof-edge mask: flat disc + torus fillet + straight wall
+        union() {
+            translate([0, 0, -1])
+                cylinder(h = lid_roof_rounding + 1, d = (r_out - lid_roof_rounding) * 2);
+            translate([0, 0, lid_roof_rounding])
+                torus(r_maj = r_out - lid_roof_rounding, r_min = lid_roof_rounding, center = true);
+            translate([0, 0, lid_roof_rounding])
+                cylinder(h = lid_total_height - lid_roof_rounding + 1, d = od_cylinder);
+        }
     }
 }
 
