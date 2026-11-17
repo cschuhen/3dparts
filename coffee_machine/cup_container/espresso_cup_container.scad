@@ -56,6 +56,13 @@ base_thickness = wall_thickness; // Base floor thickness equals wall thickness (
 fit_clearance   = 1.4;   // Radial clearance (mm)
 base_hole_dia   = 20.0;  // Center finger push-out hole diameter in container base (0 for solid)
 
+/* [Container Taper & Bore] */
+// Height of the tapered section of the container inner wall (mm).
+// Default matches glass_height so the taper follows the cup angle exactly.
+// Reduce to e.g. (glass_height - 10) for a shorter taper with more straight cylinder.
+taper_height        = glass_height;                        // Tapered section height (mm)
+id_container_bottom = glass_bot_dia + 2 * fit_clearance;   // Inner diameter at container base (mm)
+
 /* [Flush Trapezoidal Thread Parameters] */
 thread_pitch        = 6.0;   // Coarse pitch (mm per revolution)
 thread_turns        = 2.5;   // Number of thread turns (engagement height = 15.0 mm)
@@ -72,7 +79,6 @@ container_bottom_rounding = 0.8; // Rounding radius on the bottom edge of the co
 /* [Tactile Grip Flutes (Lid & Container)] */
 num_grip_flutes     = 18;    // Number of recessed tactile grip flutes around perimeter
 flute_radius        = 1.3;   // Radius of flute cutouts (mm)
-container_flute_h   = 22.0;  // Height of grip flutes on container cylinder (mm)
 lid_flute_h         = 8.0;   // Height of grip flutes on lid (mm)
 
 /* [Separator Sleeve Parameters] */
@@ -94,16 +100,18 @@ $fn = 120; // Clean facet resolution (optimal for fast rendering and smooth thre
 // =============================================================================
 taper_slope = (glass_top_dia - glass_bot_dia) / glass_height; // 16/70 ≈ 0.22857
 
-// Container bottom outer diameter (at z = 0)
-od_bottom = mating_od - (mating_z * taper_slope); // 58 - 28*(16/70) = 51.6 mm
+// Height where the inner tapered section ends and straight cylinder begins
+z_transition = base_thickness + taper_height; // default: 4.8 + 70 = 74.8 mm
 
-// Height where inside diameter reaches 58 mm (top of 1st glass)
-z_transition = base_thickness + glass_height; // 4.8 + 70 = 74.8 mm
+// Outer diameter of container cylinder (stable: derived from glass geometry, NOT taper_height)
+// This keeps the shoulder ledge width constant even when taper_height is tweaked.
+od_cylinder   = mating_od + ((base_thickness + glass_height) - mating_z) * taper_slope; // 68.7 mm
+id_cylinder   = glass_top_dia + 2 * fit_clearance;                                       // full bore diameter
 
-// Outer diameter of container cylinder
-od_transition = od_bottom + (z_transition * taper_slope); // 68.697 mm
-od_cylinder   = od_transition; 
-id_cylinder   = glass_top_dia + 2 * fit_clearance;        // 58.8 mm
+// Container bottom outer diameter (at z = 0), derived to maintain constant wall thickness
+// through the tapered section. Increasing id_container_bottom widens od_bottom and
+// reduces the outer taper slope accordingly.
+od_bottom = od_cylinder - (z_transition / taper_height) * (id_cylinder - id_container_bottom); // 51.6 mm default
 
 // Radius shortcuts
 r_out = od_cylinder / 2; // 34.348 mm
@@ -119,6 +127,7 @@ z_neck_top = z_shoulder + h_thread; // 120.0 mm (cup sticks out 4.8mm above neck
 
 // Center elevation for container grip flutes (centered in the 74.8 - 105.0 mm cylindrical span)
 container_flute_z = (z_transition + z_shoulder) / 2; // 89.9 mm
+container_flute_h = z_shoulder - z_transition - 8.2;
 
 // Thread radial dimensions
 r_neck_root  = r_in + neck_wall_min;                 // 29.4 + 1.35 = 30.75 mm
@@ -167,6 +176,7 @@ echo(str("Lid Roof Edge Rounding:     ", lid_roof_rounding, " mm (BOSL2 torus fi
 echo(str("Container Bottom Rounding:  ", container_bottom_rounding, " mm (BOSL2 torus fillet)"));
 echo(str("Lid Print Orientation:      UPSIDE DOWN (flat top roof on z=0 for bed texture)"));
 echo(str("Square Grid Footprint:      ", grid_pitch + od_cylinder, " x ", grid_pitch + od_cylinder, " mm"));
+echo(str("Container Flute Height:      ", container_flute_h," mm"));
 echo("==================================================");
 
 // =============================================================================
@@ -228,7 +238,7 @@ module container_body() {
                     [r_neck_root, z_shoulder],
                     [r_in, z_shoulder],
                     [r_in, z_transition],
-                    [glass_bot_dia / 2 + fit_clearance, base_thickness],
+                    [id_container_bottom / 2, base_thickness],
                     [base_hole_dia / 2, base_thickness]
                 ];
                 rotate_extrude() polygon(profile_to_shoulder);
