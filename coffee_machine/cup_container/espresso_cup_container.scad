@@ -15,8 +15,8 @@
 // - 4 components arranged in a compact, balanced SQUARE layout on the build plate.
 // =============================================================================
 
-include <lib/BOSL2/std.scad>;
-include <lib/BOSL2/threading.scad>;
+include <../../lib/BOSL2/std.scad>;
+include <../../lib/BOSL2/threading.scad>;
 
 /* [Part Selection] */
 // What part to generate or inspect:
