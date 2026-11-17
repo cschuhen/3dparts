@@ -60,7 +60,7 @@ base_hole_dia   = 20.0;  // Center finger push-out hole diameter in container ba
 thread_pitch        = 6.0;   // Coarse pitch (mm per revolution)
 thread_turns        = 2.5;   // Number of thread turns (engagement height = 15.0 mm)
 thread_depth        = 1.2;   // Tooth depth (mm)
-thread_angle        = 30;    // Included angle between thread flanks (degrees, BOSL2 trapezoidal)
+thread_angle        = 90;    // Included angle between thread flanks (degrees, BOSL2 trapezoidal)
 thread_clearance    = 0.35;  // Radial clearance between male/female threads for smooth gliding
 thread_starts       = 2;     // 2-start thread for balanced, instant engagement
 neck_wall_min       = 1.35;  // Neck wall thickness at thread root (mm, ~4 solid perimeters)
