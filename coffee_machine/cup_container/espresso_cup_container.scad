@@ -88,6 +88,10 @@ sleeve_base_thickness = 1.2;   // Base shelf thickness (mm)
 sleeve_hole_dia       = 35.0;  // Large hole in sleeve base (leaves a small support ring, 0 for solid)
 sleeve_clearance      = 0.2;   // Fit clearance on glass cup (mm)
 sleeve_rim_chamfer    = 0.5;   // Entry chamfer at top of sleeve (mm)
+sleeve_slit_count     = 8;     // Number of flex slits around the sleeve
+sleeve_slit_width     = 2.0;   // Width of each slit (mm, tangential)
+sleeve_slit_corner_r  = 1.0;   // Corner radius at top/bottom of each slit (mm)
+sleeve_slit_z_start   = 8.0;   // Distance from sleeve bottom to slit start (mm)
 
 /* [Square Bed Layout Spacing] */
 square_grid_spacing   = 16.0;  // Minimum spacing between adjacent components on the print bed (mm)
@@ -341,7 +345,7 @@ function flute_height_target() = lid_flute_h / 2 + 1.0;
 // =============================================================================
 module separator_sleeve() {
     r_sleeve_hole = sleeve_hole_dia / 2;
-    
+
     sleeve_profile = [
         [r_sleeve_hole, 0],
         [sleeve_od_bot / 2, 0],
@@ -351,8 +355,29 @@ module separator_sleeve() {
         [sleeve_id_bot / 2, sleeve_base_thickness],
         [r_sleeve_hole, sleeve_base_thickness]
     ];
-    
-    rotate_extrude() polygon(sleeve_profile);
+
+    difference() {
+        rotate_extrude() polygon(sleeve_profile);
+
+        for (i = [0 : sleeve_slit_count - 1]) {
+            rotate([0, 0, i * (360 / sleeve_slit_count)])
+                sleeve_slit_cutter();
+        }
+    }
+}
+
+module sleeve_slit_cutter() {
+    z_start = sleeve_slit_z_start;
+    z_end   = sleeve_height+sleeve_rim_chamfer;
+    r       = sleeve_slit_corner_r;
+    radial  = sleeve_od_top / 2 + 5;
+
+    union() {
+        translate([radial/2, 0, z_start + (z_end - z_start)/2])
+            cube([radial, sleeve_slit_width, (z_end - z_start) - r], center=[false, true, false]);
+        translate([0, 0, z_start + r])
+            rotate([0, 90, 0]) cylinder(r = r, h = radial, $fn = 32);
+    }
 }
 
 // =============================================================================
