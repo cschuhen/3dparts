@@ -89,7 +89,7 @@ sleeve_hole_dia       = 35.0;  // Large hole in sleeve base (leaves a small supp
 sleeve_clearance      = 0.2;   // Fit clearance on glass cup (mm)
 sleeve_rim_chamfer    = 0.5;   // Entry chamfer at top of sleeve (mm)
 sleeve_slit_count     = 8;     // Number of flex slits around the sleeve
-sleeve_slit_width     = 2.0;   // Width of each slit (mm, tangential)
+sleeve_slit_width     = 2;   // Width of each slit (mm, tangential)
 sleeve_slit_corner_r  = 1.0;   // Corner radius at top/bottom of each slit (mm)
 sleeve_slit_z_start   = 8.0;   // Distance from sleeve bottom to slit start (mm)
 
@@ -368,15 +368,28 @@ module separator_sleeve() {
 
 module sleeve_slit_cutter() {
     z_start = sleeve_slit_z_start;
-    z_end   = sleeve_height+sleeve_rim_chamfer;
+    z_end   = sleeve_height;
     r       = sleeve_slit_corner_r;
     radial  = sleeve_od_top / 2 + 5;
 
     union() {
         translate([radial/2, 0, z_start + (z_end - z_start)/2])
             cube([radial, sleeve_slit_width, (z_end - z_start) - r], center=[false, true, false]);
+            //cube([radial, sleeve_slit_width, (z_end - z_start) - 2*r], center=[false, true, false]);
         translate([0, 0, z_start + r])
             rotate([0, 90, 0]) cylinder(r = r, h = radial, $fn = 32);
+        // Top of slit rounding
+        difference() {
+            // Encompassing rectangle
+            translate([radial/2, -sleeve_slit_width/2-r, z_end -r])
+                cube([radial+1, r*2 + sleeve_slit_width, r+1]); // +1 prevents artifacts
+            // Round right corner at top
+            translate([0, sleeve_slit_width/2+r, z_end-r ])
+                rotate([0, 90, 0]) cylinder(r = r, h = radial, $fn = 32);
+            // Round left corner at top
+            translate([0, -sleeve_slit_width/2-r, z_end-r])
+                rotate([0, 90, 0]) cylinder(r = r, h = radial, $fn = 32);
+        }
     }
 }
 
